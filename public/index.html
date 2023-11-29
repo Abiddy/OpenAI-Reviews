@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restaurant Search</title>
+  <style>
+    /* Add your styles for cards and navigation buttons here */
+    #cardContainer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 80vh; /* Adjust as needed */
+    }
+
+    h1, #searchForm {
+      text-align: center; /* Center-align text within the container */
+    }
+
+    .card {
+      border: 1px solid #202020;
+      padding: 20px;
+      width: 1000px;
+      text-align: center;
+    }
+
+    #buttonContainer {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Restaurant Search</h1>
+
+<form id="searchForm">
+  <label for="cityInput">Enter City:</label>
+  <input type="text" id="cityInput" name="cityInput" required>
+  <button type="submit">Search</button>
+</form>
+
+
+<div id="cardContainer"></div>
+<div id="results"></div>
+
+<script>
+  let currentCardIndex = 0; // Define outside the function to maintain state
+
+  document.getElementById('searchForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    
+    const cityInput = document.getElementById('cityInput').value;
+
+    // Call your API endpoint with the entered city
+    const apiUrl = `/places?city=${cityInput}`;
+    
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        // Display the results in the 'results' div
+        displayResults(data);
+      })
+      .catch(error => console.error(error));
+  });
+
+  function displayResults(data) {
+    const resultsDiv = document.getElementById('results');
+    const cardContainer = document.getElementById('cardContainer');
+
+    // Clear previous results
+    resultsDiv.innerHTML = '';
+    cardContainer.innerHTML = '';
+
+    if (data && data.length > 0) {
+      // Display the first card initially
+      displayCard(data[0]);
+
+      const buttonContainer = document.createElement('div');
+      buttonContainer.id = 'buttonContainer';
+
+      const prevButton = document.createElement('button');
+      prevButton.textContent = '←';
+      prevButton.addEventListener('click', () => navigateCard(data, -1));
+      buttonContainer.appendChild(prevButton);
+
+      const nextButton = document.createElement('button');
+      nextButton.textContent = '→';
+      nextButton.addEventListener('click', () => navigateCard(data, 1));
+      buttonContainer.appendChild(nextButton);
+      cardContainer.appendChild(buttonContainer);
+    } else {
+      resultsDiv.textContent = 'No results found.';
+    }
+  }
+
+  function displayCard(item) {
+  const cardContainer = document.getElementById('cardContainer');
+
+  const card = document.createElement('div');
+  card.className = 'card'; // Add your card styles here
+
+  // Display alias and coordinates
+  const aliasElement = document.createElement('p');
+  aliasElement.textContent = `Alias: ${item.alias}, Coordinates: ${JSON.stringify(item.coordinates)}`;
+  card.appendChild(aliasElement);
+
+  // Display loading message while waiting for summaries API response
+  const loadingElement = document.createElement('p');
+  loadingElement.textContent = 'Loading...';
+  card.appendChild(loadingElement);
+
+  // Make a request to the summaries API for the current alias
+  const summariesUrl = `/summaries?place_id=${item.alias}`;
+  fetch(summariesUrl)
+    .then(response => response.json())
+    .then(summary => {
+      // Remove loading message
+      card.removeChild(loadingElement);
+
+      // Display the response from the summaries API
+      const summaryElement = document.createElement('p');
+      summaryElement.textContent = `Summary: ${summary}`;
+      card.appendChild(summaryElement);
+    })
+    .catch(error => {
+      // Display an error message if there's an issue with the summaries API
+      card.removeChild(loadingElement);
+      const errorElement = document.createElement('p');
+      errorElement.textContent = 'Error getting summary.';
+      card.appendChild(errorElement);
+      console.error('Error getting summary:', error);
+    });
+
+  cardContainer.appendChild(card);
+}
+
+
+  function navigateCard(data, direction) {
+    // Update the current card index based on the direction
+    currentCardIndex = (currentCardIndex + direction + data.length) % data.length;
+
+    // Get the card container and all the cards
+    const cardContainer = document.getElementById('cardContainer');
+    
+    // Remove all cards from the container
+    cardContainer.innerHTML = '';
+
+    // Display the new current card
+    displayCard(data[currentCardIndex]);
+
+    // Re-create and append the button container
+    const buttonContainer = document.createElement('div');
+    buttonContainer.id = 'buttonContainer';
+
+    const prevButton = document.createElement('button');
+    prevButton.textContent = '←';
+    prevButton.addEventListener('click', () => navigateCard(data, -1));
+    buttonContainer.appendChild(prevButton);
+
+    const nextButton = document.createElement('button');
+    nextButton.textContent = '→';
+    nextButton.addEventListener('click', () => navigateCard(data, 1));
+    buttonContainer.appendChild(nextButton);
+
+    cardContainer.appendChild(buttonContainer);
+  }
+</script>
+
+
+</body>
+</html>
