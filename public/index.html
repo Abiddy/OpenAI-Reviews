@@ -4,174 +4,184 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Restaurant Search</title>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-T8MFq53VfxEBVGwvaxQENfFdpWQyA2Q&libraries=places&callback=initMap"></script>
   <style>
-    /* Add your styles for cards and navigation buttons here */
-    #cardContainer {
+    #container {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 80vh; /* Adjust as needed */
+      height: 100vh;
     }
 
-    h1, #searchForm {
-      text-align: center; /* Center-align text within the container */
+    #mapContainer {
+      flex: 3;
+      position: relative;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    #pac-input {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1;
+      background-color: #fff;
+      padding: 5px;
+      border-radius: 5px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    #summaryContainer {
+      flex: 2;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #cardContainer {
+      max-height: 80vh;
+      overflow-y: auto;
     }
 
     .card {
-      border: 1px solid #202020;
-      padding: 20px;
-      width: 1000px;
-      text-align: center;
+      margin-bottom: 16px;
+      padding: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
     }
 
-    #buttonContainer {
-      margin-top: 10px;
-      display: flex;
-      justify-content: space-between;
+    .loading-spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 36px;
+      height: 36px;
+      animation: spin 1s linear infinite;
     }
 
-    button {
-      cursor: pointer;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
+  <!-- Add a search bar and the map container -->
+  <div id="container">
 
-<h1>Restaurant Search</h1>
+    <div id="summaryContainer">
+      <h1> What do people say about this place?</h1>
+      <div id="cardContainer"></div>
+      <div id="results"></div>
+      <div id="loadingSpinner" class="loading-spinner" style="display: none;"></div>
+    </div>
+    <div id="mapContainer">
+      <input id="pac-input" type="text" placeholder="Enter a location">
+      <div id="map"></div>
+    </div>
+  </div>
 
-<form id="searchForm">
-  <label for="cityInput">Enter City:</label>
-  <input type="text" id="cityInput" name="cityInput" required>
-  <button type="submit">Search</button>
-</form>
+  <script>
+    let currentCardIndex = 0; // Define outside the function to maintain state
 
-
-<div id="cardContainer"></div>
-<div id="results"></div>
-
-<script>
-  let currentCardIndex = 0; // Define outside the function to maintain state
-
-  document.getElementById('searchForm').addEventListener('submit', function(event) {
-    event.preventDefault();
-    
-    const cityInput = document.getElementById('cityInput').value;
-
-    // Call your API endpoint with the entered city
-    const apiUrl = `/places?city=${cityInput}`;
-    
-    fetch(apiUrl)
-      .then(response => response.json())
-      .then(data => {
-        // Display the results in the 'results' div
-        displayResults(data);
-      })
-      .catch(error => console.error(error));
+function initMap() {
+  const map = new google.maps.Map(document.getElementById('map'), {
+    center: { lat: 40.12150192260742, lng: -100.45039367675781 },
+    zoom: 4,
   });
 
-  function displayResults(data) {
-    const resultsDiv = document.getElementById('results');
-    const cardContainer = document.getElementById('cardContainer');
+  const input = document.getElementById('pac-input');
+  const searchBox = new google.maps.places.SearchBox(input);
+  map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
 
-    // Clear previous results
-    resultsDiv.innerHTML = '';
-    cardContainer.innerHTML = '';
+  map.addListener('bounds_changed', function () {
+    searchBox.setBounds(map.getBounds());
+  });
 
-    if (data && data.length > 0) {
-      // Display the first card initially
-      displayCard(data[0]);
+  searchBox.addListener('places_changed', function () {
+    const places = searchBox.getPlaces();
 
-      const buttonContainer = document.createElement('div');
-      buttonContainer.id = 'buttonContainer';
-
-      const prevButton = document.createElement('button');
-      prevButton.textContent = '←';
-      prevButton.addEventListener('click', () => navigateCard(data, -1));
-      buttonContainer.appendChild(prevButton);
-
-      const nextButton = document.createElement('button');
-      nextButton.textContent = '→';
-      nextButton.addEventListener('click', () => navigateCard(data, 1));
-      buttonContainer.appendChild(nextButton);
-      cardContainer.appendChild(buttonContainer);
-    } else {
-      resultsDiv.textContent = 'No results found.';
+    if (places.length === 0) {
+      return;
     }
-  }
 
-  function displayCard(item) {
-  const cardContainer = document.getElementById('cardContainer');
+    // Clear any existing markers
+    markers.forEach(marker => marker.setMap(null));
+    markers = [];
 
-  const card = document.createElement('div');
-  card.className = 'card'; // Add your card styles here
+    // For each place, add a marker and center the map on the place's location
+    const bounds = new google.maps.LatLngBounds();
+    places.forEach(place => {
+      if (!place.geometry || !place.geometry.location) {
+        console.log('Place contains no geometry');
+        return;
+      }
 
-  // Display alias and coordinates
-  const aliasElement = document.createElement('p');
-  aliasElement.textContent = `Alias: ${item.alias}, Coordinates: ${JSON.stringify(item.coordinates)}`;
-  card.appendChild(aliasElement);
+      const marker = new google.maps.Marker({
+        map: map,
+        title: place.name,
+        position: place.geometry.location,
+      });
 
-  // Display loading message while waiting for summaries API response
-  const loadingElement = document.createElement('p');
-  loadingElement.textContent = 'Loading...';
-  card.appendChild(loadingElement);
+      markers.push(marker);
 
-  // Make a request to the summaries API for the current alias
-  const summariesUrl = `/summaries?place_id=${item.alias}`;
-  fetch(summariesUrl)
-    .then(response => response.json())
-    .then(summary => {
-      // Remove loading message
-      card.removeChild(loadingElement);
-
-      // Display the response from the summaries API
-      const summaryElement = document.createElement('p');
-      summaryElement.textContent = `Summary: ${summary}`;
-      card.appendChild(summaryElement);
-    })
-    .catch(error => {
-      // Display an error message if there's an issue with the summaries API
-      card.removeChild(loadingElement);
-      const errorElement = document.createElement('p');
-      errorElement.textContent = 'Error getting summary.';
-      card.appendChild(errorElement);
-      console.error('Error getting summary:', error);
+      bounds.extend(place.geometry.location);
     });
 
-  cardContainer.appendChild(card);
+    map.fitBounds(bounds);
+
+    // Fetch data from the google_places API
+    const reviewsObject = places[0].reviews; // Adjust this based on your actual data structure
+  const comments = reviewsObject.map((review) => review.text).join('\n\n');
+  const apiUrl = `/summaries?comments=${encodeURIComponent(comments)}`;
+
+  // Display loading spinner
+  const loadingSpinner = document.getElementById('loadingSpinner');
+  loadingSpinner.style.display = 'block';
+
+  fetch(apiUrl)
+    .then(response => response.json())
+    .then(data => {
+      displayResults(data);
+
+      // Hide loading spinner on success
+      loadingSpinner.style.display = 'none';
+    })
+    .catch(error => {
+      console.error(error);
+
+      // Hide loading spinner on error
+      loadingSpinner.style.display = 'none';
+    });
+});
 }
 
+let markers = [];
 
-  function navigateCard(data, direction) {
-    // Update the current card index based on the direction
-    currentCardIndex = (currentCardIndex + direction + data.length) % data.length;
+function displayResults(data) {
+  const resultsDiv = document.getElementById('results');
+  const cardContainer = document.getElementById('cardContainer');
 
-    // Get the card container and all the cards
-    const cardContainer = document.getElementById('cardContainer');
+  // Clear previous results
+  resultsDiv.innerHTML = '';
+  cardContainer.innerHTML = '';
+
+ 
+  if (data.content) {
     
-    // Remove all cards from the container
-    cardContainer.innerHTML = '';
-
-    // Display the new current card
-    displayCard(data[currentCardIndex]);
-
-    // Re-create and append the button container
-    const buttonContainer = document.createElement('div');
-    buttonContainer.id = 'buttonContainer';
-
-    const prevButton = document.createElement('button');
-    prevButton.textContent = '←';
-    prevButton.addEventListener('click', () => navigateCard(data, -1));
-    buttonContainer.appendChild(prevButton);
-
-    const nextButton = document.createElement('button');
-    nextButton.textContent = '→';
-    nextButton.addEventListener('click', () => navigateCard(data, 1));
-    buttonContainer.appendChild(nextButton);
-
-    cardContainer.appendChild(buttonContainer);
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<p>${data.content}</p>`;
+      cardContainer.appendChild(card);
+    
+  } else {
+    cardContainer.innerHTML = '<p>No reviews found.</p>';
   }
-</script>
+  }
 
-
+  </script>
 </body>
 </html>
