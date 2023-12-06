@@ -17,7 +17,7 @@ app.get('/google_places', async (req, res) => {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     const placeId = req.query.place_id;
 
-    const googlePlacesUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${'AIzaSyB-T8MFq53VfxEBVGwvaxQENfFdpWQyA2Q'}`;
+    const googlePlacesUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${apiKey}`;
 
     const googlePlacesResponse = await axios.get(googlePlacesUrl);
 

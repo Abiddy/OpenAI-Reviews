@@ -3,37 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Restaurant Search</title>
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-T8MFq53VfxEBVGwvaxQENfFdpWQyA2Q&libraries=places&callback=initMap"></script>
+  <title>OpenAI Reviews</title>
+
   <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', sans-serif;
+      background-color: #1d1d1d; /* Dark Night Sky Blue */
+      color: #ffffff;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 20px;
+    }
+
+    p1 {
+      margin-bottom: 40px;
+    }
+
     #container {
       display: flex;
       height: 100vh;
+      border-radius: 20px; /* Round corners */
+      overflow: hidden;
     }
 
     #mapContainer {
+      border-radius: 70px;
       flex: 3;
       position: relative;
     }
 
     #map {
-      height: 100%;
-      width: 100%;
+      margin-top: 20px;
+      margin-right: 20px;
+      height: 95%;
+      border-radius: 70px;
     }
 
     #pac-input {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 1;
-      background-color: #fff;
-      padding: 5px;
-      border-radius: 5px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      background-color: rgba(252, 252, 252, 0.9);
+      padding: 17px;
+      border-radius: 100px; /* Round corners */
+      /* border-color:#ddd; */
+      border-width: 0cap;
     }
 
     #summaryContainer {
-      flex: 2;
+      flex: 3;
       padding: 16px;
       display: flex;
       flex-direction: column;
@@ -44,6 +63,7 @@
     #cardContainer {
       max-height: 80vh;
       overflow-y: auto;
+      margin-top: 20px;
     }
 
     .card {
@@ -54,9 +74,9 @@
     }
 
     .loading-spinner {
-      border: 4px solid rgba(0, 0, 0, 0.1);
+      border: 4px solid rgba(255, 255, 255, 0.1);
       border-radius: 50%;
-      border-top: 4px solid #3498db;
+      border-top: 4px solid #8ab3cf;
       width: 36px;
       height: 36px;
       animation: spin 1s linear infinite;
@@ -73,29 +93,30 @@
   <div id="container">
 
     <div id="summaryContainer">
-      <h1> What do people say about this place?</h1>
+      <h1>OpenAI Reviews Summarizer</h1>
+      <p1>Get AI generated analysis on dozens of real life reviews</p1>
+      <input id="pac-input" type="text" placeholder="Enter a restaurant">
       <div id="cardContainer"></div>
-      <div id="results"></div>
       <div id="loadingSpinner" class="loading-spinner" style="display: none;"></div>
+      <div id="results"></div>
     </div>
     <div id="mapContainer">
-      <input id="pac-input" type="text" placeholder="Enter a location">
       <div id="map"></div>
     </div>
   </div>
-
-  <script>
-    let currentCardIndex = 0; // Define outside the function to maintain state
+  <script>    const apiKey = process.env.GOOGLE_MAPS_API_KEY;</script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR-API-KEY&libraries=places&callback=initMap"></script>
+<script>
+  let currentCardIndex = 0; // Define outside the function to maintain state
 
 function initMap() {
   const map = new google.maps.Map(document.getElementById('map'), {
     center: { lat: 40.12150192260742, lng: -100.45039367675781 },
-    zoom: 4,
+    zoom: 5,
   });
 
   const input = document.getElementById('pac-input');
   const searchBox = new google.maps.places.SearchBox(input);
-  map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
 
   map.addListener('bounds_changed', function () {
     searchBox.setBounds(map.getBounds());
@@ -169,7 +190,6 @@ function displayResults(data) {
   resultsDiv.innerHTML = '';
   cardContainer.innerHTML = '';
 
- 
   if (data.content) {
     
       const card = document.createElement('div');
