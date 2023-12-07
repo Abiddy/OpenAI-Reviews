@@ -6,7 +6,6 @@ const port = 4000;
 require('dotenv').config();
 const path = require('path');
 
-// Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -73,9 +72,6 @@ app.get('/summaries', async (req, res) => {
     res.status(500).json(errorResponse);
   }
 });
-
-
-
 
 // Start the server
 app.listen(port, () => {
